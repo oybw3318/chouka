@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#F3F7F1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="mobile-web-app-capable" content="yes">
+<title>效应萃取台 · 手机版</title>
+<style>
+:root{
+  --bg:#F3F7F1;--surface:#FFFFFF;--line:#E2EBDE;
+  --ink:#233029;--ink2:#5C6E63;--ink3:#8DA096;
+  --leaf:#2F7D5B;--mint:#4FA97F;--sage:#A9CCAF;--sage-soft:#DCEDE1;
+  --sand:#F7F1E4;--amber:#C98A2B;
+  --shadow:0 1px 2px rgba(35,48,41,.04),0 8px 24px rgba(35,48,41,.07);
+  --sat:env(safe-area-inset-top,0px);
+  --sab:env(safe-area-inset-bottom,0px);
+  --sal:env(safe-area-inset-left,0px);
+  --sar:env(safe-area-inset-right,0px);
+  --tabh:58px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{height:100%}
+body{
+  font-family:"PingFang SC","Hiragino Sans GB",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:var(--bg);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(900px 480px at 50% -8%,#E1F0E4 0%,rgba(225,240,228,0) 62%);
+  background-attachment:fixed;
+  min-height:100%;padding-bottom:calc(var(--tabh) + var(--sab));
+  overscroll-behavior-y:none;
+}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit;touch-action:manipulation}
+input{font:inherit;-webkit-appearance:none}
+/* 禁掉长按选词与放大镜：内容区一长按就会整页选中并弹出系统菜单 */
+.view,.tabbar,.hd{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+/* 但台词、原理这些要照着念的文字，必须允许选中复制 */
+.e-d,.e-q,.f-quote,.e-rule,.full-q,.spk-note{-webkit-touch-callout:default;-webkit-user-select:text;user-select:text}
+/* iOS 点 input 会自动放大页面：字号必须 >=16px，且允许用户缩放 */
+input,.search{font-size:16px}
+
+/* ══ 顶栏 ══ */
+.hd{
+  position:sticky;top:0;z-index:70;padding:calc(var(--sat) + 10px) 16px 10px;
+  background:rgba(255,255,255,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:10px;
+  padding-left:calc(16px + var(--sal));padding-right:calc(16px + var(--sar));
+}
+.hd-mark{width:30px;height:30px;border-radius:10px;background:linear-gradient(145deg,var(--mint),var(--leaf));
+  display:grid;place-items:center;flex:none;box-shadow:0 4px 11px rgba(47,125,91,.24)}
+.hd-mark svg{width:17px;height:17px}
+.hd h1{font-size:16px;font-weight:670;letter-spacing:-.2px;line-height:1.2;flex:1;min-width:0}
+.hd .n{font-size:11px;color:var(--ink3);font-weight:600;font-variant-numeric:tabular-nums}
+.hd-link{font-size:12.5px;color:var(--leaf);background:var(--sage-soft);padding:7px 11px;border-radius:999px;
+  font-weight:600;text-decoration:none;border:1px solid #C9E3D3;white-space:nowrap}
+
+/* ══ 视图切换 ══ */
+.view{display:none;padding:16px 16px 20px;padding-left:calc(16px + var(--sal));padding-right:calc(16px + var(--sar))}
+.view.on{display:block}
+
+/* ══ 底栏 Tab ══ */
+.tabbar{
+  position:fixed;left:0;right:0;bottom:0;z-index:80;display:flex;
+  padding:6px 8px calc(6px + var(--sab));
+  padding-left:calc(8px + var(--sal));padding-right:calc(8px + var(--sar));
+  background:rgba(255,255,255,.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-top:1px solid var(--line);
+}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  padding:8px 4px;border-radius:13px;min-height:46px;color:var(--ink3);transition:.16s}
+.tab svg{width:21px;height:21px}
+.tab span{font-size:10.5px;font-weight:600;letter-spacing:.2px}
+.tab.on{color:var(--leaf);background:var(--sage-soft)}
+
+/* ══ 卡片通用 ══ */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;
+  box-shadow:var(--shadow);padding:16px}
+
+/* ══ 计时视图 ══ */
+.prep{display:flex;align-items:center;gap:11px;padding:13px 15px;border-radius:15px;
+  border:1px solid var(--line);background:var(--surface);margin-bottom:14px;transition:.3s}
+.prep.active{background:var(--sage-soft);border-color:#B8DCC8}
+.prep.done{opacity:.45}
+.prep-info{flex:none}
+.prep-info .t{font-size:9.5px;letter-spacing:1.3px;color:var(--ink3);font-weight:700}
+.prep-info .n{font-size:13px;font-weight:600;color:var(--ink2)}
+.prep-track{flex:1;height:7px;border-radius:99px;background:#E1E9DD;overflow:hidden}
+.prep-fill{height:100%;width:0%;border-radius:99px;background:var(--mint);transition:width .95s linear,background .3s}
+.prep.active .prep-fill{background:var(--leaf)}
+.prep.warn .prep-fill{background:var(--amber)}
+.prep-time{flex:none;font-size:15px;font-weight:650;font-variant-numeric:tabular-nums;min-width:50px;text-align:right}
+
+.spk{text-align:center;padding:22px 16px 18px;border-radius:20px;border:1px solid var(--line);
+  background:linear-gradient(170deg,#FBFDFA 0%,#F3F9F2 100%);transition:.3s;margin-bottom:14px}
+.spk.live{border-color:#B8DCC8;background:linear-gradient(170deg,#F5FBF5 0%,#E2F2E6 100%);box-shadow:0 0 0 3px rgba(169,204,175,.22)}
+.spk.warn{border-color:#F0D6BE;background:linear-gradient(170deg,#FDF7F1 0%,#FBEDE1 100%)}
+.spk-tag{font-size:10.5px;letter-spacing:2px;color:var(--ink3);font-weight:650;margin-bottom:14px}
+.spk-tag b{color:var(--leaf);font-weight:700}
+.spk.warn .spk-tag b{color:var(--amber)}
+.ring{position:relative;width:min(272px,72vw);height:min(272px,72vw);margin:0 auto}
+.ring svg{transform:rotate(-90deg);display:block;width:100%;height:100%}
+.ring .trk{fill:none;stroke:#E4ECE0;stroke-width:11}
+.ring .bar{fill:none;stroke:var(--mint);stroke-width:11;stroke-linecap:round;transition:stroke-dashoffset .95s linear,stroke .3s}
+.spk.live .ring .bar{stroke:var(--leaf)}
+.spk.warn .ring .bar{stroke:var(--amber)}
+.ring .val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.ring .num{font-size:clamp(66px,20vw,88px);font-weight:650;letter-spacing:-4px;line-height:1;font-variant-numeric:tabular-nums}
+.ring .unit{font-size:11px;color:var(--ink3);letter-spacing:2px}
+.pulse{position:absolute;inset:0;border-radius:50%;border:2px solid var(--mint);opacity:0;pointer-events:none}
+.spk.live .pulse{animation:breathe 3.4s ease-out infinite}
+@keyframes breathe{0%{opacity:.35;transform:scale(1)}70%{opacity:0;transform:scale(1.1)}100%{opacity:0}}
+.spk-note{font-size:13px;color:var(--ink2);margin-top:14px;min-height:20px}
+
+/* 三个节奏格 */
+.beats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:14px}
+.beat{border:1px solid var(--line);border-radius:12px;padding:9px 8px;background:var(--surface);text-align:center}
+.beat .bt{font-size:12px;font-weight:700;color:var(--leaf);font-variant-numeric:tabular-nums}
+.beat .bd{font-size:11px;color:var(--ink2);line-height:1.45;margin-top:2px}
+.spk.live .beat{border-color:#CBE4D6}
+
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.btn{font-size:15px;font-weight:600;border-radius:15px;padding:15px 12px;min-height:50px;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink);transition:.16s;text-align:center}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--leaf);border-color:var(--leaf);color:#fff;box-shadow:0 6px 16px rgba(47,125,91,.24)}
+.btn.ghost{color:var(--ink2)}
+.btn.full{grid-column:1/-1}
+
+/* ══ 抽卡视图 ══ */
+.drawzone{position:relative;display:grid;place-items:center;height:min(74vw,420px);margin:2px 0 8px}
+.halo{position:absolute;width:62%;padding-bottom:62%;border-radius:50%;opacity:0;pointer-events:none;
+  background:radial-gradient(circle,rgba(79,169,127,.34) 0%,rgba(169,204,175,.16) 45%,rgba(255,255,255,0) 70%)}
+.halo.go{animation:haloOut .95s cubic-bezier(.2,.7,.3,1) forwards}
+@keyframes haloOut{0%{opacity:0;transform:scale(.55)}25%{opacity:1}100%{opacity:0;transform:scale(1.55)}}
+.ringline{position:absolute;width:60%;padding-bottom:60%;border-radius:50%;border:1.5px solid var(--mint);opacity:0}
+.ringline.go{animation:ringOut 1.05s cubic-bezier(.2,.7,.3,1) forwards}
+@keyframes ringOut{0%{opacity:.8;transform:scale(.5)}100%{opacity:0;transform:scale(1.7)}}
+.pt{position:absolute;width:7px;height:7px;border-radius:50%;opacity:0;pointer-events:none;background:var(--mint)}
+.pt.go{animation:ptUp 1s ease-out forwards}
+@keyframes ptUp{0%{opacity:.95;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.2)}}
+
+.c3d{position:relative;width:min(60vw,236px);height:min(84vw,330px);perspective:1300px}
+.card3d{position:relative;width:100%;height:100%;transform-style:preserve-3d;
+  transition:transform .82s cubic-bezier(.22,.85,.25,1)}
+.c3d.flip .card3d{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;border-radius:20px;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden}
+.face-back{background:linear-gradient(155deg,#EAF4E9 0%,#DCEDE1 52%,#CFE4D6 100%);
+  border:1px solid #BEDBCB;box-shadow:0 12px 30px rgba(47,125,91,.18);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.face-back::before{content:"";position:absolute;inset:0;
+  background-image:linear-gradient(rgba(47,125,91,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(47,125,91,.06) 1px,transparent 1px);
+  background-size:20px 20px;mask-image:radial-gradient(circle at 50% 50%,#000 30%,transparent 76%);
+  -webkit-mask-image:radial-gradient(circle at 50% 50%,#000 30%,transparent 76%)}
+.face-back .corner{position:absolute;width:7px;height:7px;border-radius:50%;background:#A3CCB0}
+.seal{width:66px;height:66px;border-radius:21px;background:linear-gradient(150deg,var(--mint),var(--leaf));
+  display:grid;place-items:center;box-shadow:0 10px 22px rgba(47,125,91,.3);position:relative;z-index:1}
+.seal svg{width:33px;height:33px}
+.back-txt{position:relative;z-index:1;text-align:center}
+.back-txt .a{font-size:11px;letter-spacing:3px;color:#4E7F66;font-weight:600}
+.back-txt .b{font-size:12px;color:#6E9183;margin-top:3px}
+.shine{position:absolute;top:-60%;left:-130%;width:60%;height:220%;transform:rotate(22deg);
+  background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.72),rgba(255,255,255,0));opacity:0}
+.face-back.go .shine{animation:shineGo 1s ease-in-out .18s forwards}
+@keyframes shineGo{0%{opacity:0;left:-130%}25%{opacity:.9}100%{opacity:0;left:150%}}
+.ripple{position:absolute;width:20px;height:20px;border-radius:50%;background:rgba(79,169,127,.26);opacity:0;transform:scale(0);z-index:2}
+.c3d.rip .ripple{animation:rip .62s ease-out}
+@keyframes rip{0%{opacity:.7;transform:scale(0)}100%{opacity:0;transform:scale(13)}}
+.c3d.shake .card3d{animation:shake .5s ease-in-out}
+@keyframes shake{0%,100%{transform:rotate(0) translateX(0)}15%{transform:rotate(-1.4deg) translateX(-5px)}
+  32%{transform:rotate(1.4deg) translateX(5px)}50%{transform:rotate(-1.1deg) translateX(-3px)}
+  70%{transform:rotate(1deg) translateX(3px)}86%{transform:rotate(-.5deg) translateX(-1px)}}
+.face-front{transform:rotateY(180deg);background:var(--surface);border:1px solid var(--line);
+  box-shadow:0 14px 34px rgba(47,125,91,.16);padding:17px 16px;display:flex;flex-direction:column}
+.face-front .glow{position:absolute;inset:0;background:linear-gradient(150deg,rgba(169,204,175,.22),rgba(255,255,255,0) 55%);pointer-events:none}
+.f-body{position:relative;display:flex;flex-direction:column;flex:1;animation:cardIn .5s .45s both}
+@keyframes cardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.f-cat{display:inline-flex;align-self:flex-start;font-size:10.5px;padding:3px 9px;border-radius:999px;
+  background:var(--sage-soft);color:var(--leaf);font-weight:650;margin-bottom:9px}
+.f-name{font-size:23px;font-weight:680;letter-spacing:-.5px;line-height:1.2}
+.f-en{font-size:11px;color:var(--ink3);font-style:italic;margin-top:2px}
+.f-rule{font-size:13px;color:var(--ink2);margin-top:11px}
+.f-quote{background:var(--sand);border-left:3px solid #E3D2AE;border-radius:0 9px 9px 0;padding:9px 11px;
+  font-size:12.5px;color:#4A3F2C;line-height:1.6;margin-top:11px}
+.f-foot{margin-top:auto;padding-top:9px;display:flex;justify-content:space-between;font-size:10px;color:var(--ink3)}
+.f-empty{position:relative;display:grid;place-items:center;text-align:center;color:#7FA58D;font-size:13.5px;line-height:2;height:100%}
+
+.drawbtns{display:grid;grid-template-columns:1fr 68px;gap:10px}
+.counter{text-align:center;font-size:11.5px;color:var(--ink3);margin-top:11px}
+.counter b{color:var(--leaf);font-weight:650;font-variant-numeric:tabular-nums}
+
+/* ══ 全览视图 ══ */
+.chips{display:flex;gap:7px;overflow-x:auto;padding:2px 0 12px;margin:0 -16px;padding-left:16px;padding-right:16px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;font-size:12.5px;padding:8px 14px;border-radius:999px;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink2);min-height:36px;font-weight:500}
+.chip.on{background:var(--leaf);border-color:var(--leaf);color:#fff;font-weight:600}
+.search{width:100%;font-size:16px;padding:13px 16px;border-radius:14px;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink);margin-bottom:12px}
+.search:focus{outline:none;border-color:var(--mint);box-shadow:0 0 0 3px rgba(169,204,175,.26)}
+.sec{margin-bottom:22px}
+.sec-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.sec-head h2{font-size:15px;font-weight:670;flex:none}
+.sec-head .cnt{font-size:11.5px;color:var(--ink3);font-variant-numeric:tabular-nums}
+.sec-head .ln{flex:1;height:1px;background:var(--line)}
+.elist{display:flex;flex-direction:column;gap:10px}
+.e{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 15px}
+.e-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.e-cat{font-size:10.5px;padding:2.5px 9px;border-radius:999px;font-weight:650;background:var(--sage-soft);color:var(--leaf)}
+.e-name{font-size:16.5px;font-weight:670;letter-spacing:-.2px;line-height:1.3}
+.e-en{font-size:11px;color:var(--ink3);font-style:italic;margin-top:1px}
+.e-blk{margin-top:10px}
+.e-k{font-size:10.5px;font-weight:650;color:var(--ink3);letter-spacing:.5px;margin-bottom:3px}
+.e-v{font-size:13.5px;color:var(--ink)}
+.e-q{background:var(--sand);border-left:3px solid #E3D2AE;border-radius:0 9px 9px 0;padding:9px 12px;
+  font-size:13px;color:#4A3F2C;line-height:1.6}
+.pace{display:flex;flex-direction:column;gap:4px}
+.pace-row{display:flex;gap:8px;font-size:12.5px;color:var(--ink2)}
+.pace-row .t{flex:none;width:58px;font-variant-numeric:tabular-nums;color:var(--leaf);font-weight:650}
+.e .copy{width:100%;margin-top:12px;font-size:13px;padding:11px;border-radius:12px;
+  border:1px solid var(--line);color:var(--ink2);font-weight:600;min-height:42px}
+.e .copy:active{background:var(--sage-soft)}
+.empty{text-align:center;color:var(--ink3);font-size:13.5px;padding:50px 0}
+.foot{font-size:12px;color:var(--ink3);background:rgba(234,243,232,.7);border:1px solid var(--line);
+  border-radius:14px;padding:13px 15px;line-height:1.7}
+.foot b{color:var(--ink2);font-weight:600}
+
+/* ══ 全屏开口模式 ══ */
+.full{position:fixed;inset:0;z-index:200;display:none;flex-direction:column;
+  background:linear-gradient(175deg,#F5FBF5 0%,#E4F3E7 100%);
+  padding:calc(var(--sat) + 18px) 22px calc(var(--sab) + 20px);overflow-y:auto}
+.full.on{display:flex}
+.full.warn{background:linear-gradient(175deg,#FDF7F1 0%,#FBEBDE 100%)}
+.full-top{display:flex;justify-content:space-between;align-items:center;flex:none}
+.full-tag{font-size:11px;letter-spacing:2.5px;color:var(--leaf);font-weight:700}
+.full.warn .full-tag{color:var(--amber)}
+.full-x{font-size:13px;color:var(--ink2);padding:9px 14px;border-radius:999px;
+  background:rgba(255,255,255,.7);border:1px solid var(--line);min-height:38px;font-weight:600}
+.full-ring{position:relative;width:min(74vw,300px);height:min(74vw,300px);margin:auto;flex:none}
+.full-ring svg{transform:rotate(-90deg);width:100%;height:100%}
+.full-ring .trk{fill:none;stroke:rgba(255,255,255,.75);stroke-width:10}
+.full-ring .bar{fill:none;stroke:var(--leaf);stroke-width:10;stroke-linecap:round;
+  transition:stroke-dashoffset .95s linear,stroke .3s}
+.full.warn .full-ring .bar{stroke:var(--amber)}
+.full-ring .val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.full-ring .num{font-size:clamp(80px,25vw,108px);font-weight:660;letter-spacing:-5px;line-height:1;
+  font-variant-numeric:tabular-nums;color:var(--ink)}
+.full-ring .unit{font-size:11px;letter-spacing:2.5px;color:var(--ink3);font-weight:600}
+.full-mid{flex:1;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:14px 0;min-height:0}
+.full-mid .lbl{font-size:10.5px;letter-spacing:2px;color:var(--ink3);font-weight:650;text-align:center}
+.full-q{background:rgba(255,255,255,.78);border:1px solid #CFE4D6;border-radius:16px;padding:16px 18px;
+  font-size:16px;color:#26382E;line-height:1.7}
+.full-q.empty{color:#7FA58D;font-size:14px;text-align:center}
+.full-beats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;flex:none}
+.fb{background:rgba(255,255,255,.7);border:1px solid #CFE4D6;border-radius:12px;padding:9px 6px;text-align:center}
+.full.warn .fb{border-color:#F0D6BE}
+.fb .bt{font-size:12.5px;font-weight:700;color:var(--leaf);font-variant-numeric:tabular-nums}
+.full.warn .fb .bt{color:var(--amber)}
+.fb .bd{font-size:11px;color:var(--ink2);line-height:1.4;margin-top:2px}
+.full-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex:none;margin-top:14px}
+.fb-btn{font-size:15px;font-weight:600;border-radius:15px;padding:15px;min-height:50px;
+  background:var(--leaf);color:#fff;box-shadow:0 6px 16px rgba(47,125,91,.22)}
+.fb-btn.sec{background:rgba(255,255,255,.8);color:var(--ink2);border:1px solid var(--line);box-shadow:none}
+.fb-btn:active{transform:scale(.98)}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:calc(var(--tabh) + var(--sab) + 16px);transform:translate(-50%,14px);
+  background:#24352C;color:#fff;font-size:13px;padding:11px 18px;border-radius:12px;opacity:0;
+  pointer-events:none;transition:.26s;z-index:300;box-shadow:0 10px 30px rgba(0,0,0,.2);max-width:82vw;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* 大屏手机横屏 */
+@media(min-width:760px){
+  .view,.hd{max-width:640px;margin-left:auto;margin-right:auto}
+  .tabbar{max-width:640px;left:50%;transform:translateX(-50%);border-radius:20px 20px 0 0;
+    border:1px solid var(--line);border-bottom:none}
+}
+@media(hover:none){
+  .btn:hover,.chip:hover,.e .copy:hover{background:var(--surface)}
+  .chip.on:hover{background:var(--leaf)}
+}
+</style>
+</head>
+<body>
+
+<header class="hd">
+  <span class="hd-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 8c4 0 7 2 7 5s-3 5-7 5"/><path d="M19 5c-3 .5-5 3-5 6"/></svg></span>
+  <h1 id="hdTitle">效应萃取台</h1>
+  <span class="n" id="hdN"></span>
+  <a class="hd-link" href="效应全览.html">电脑版</a>
+</header>
+
+<!-- ══ 计时 ══ -->
+<section class="view on" id="v-time">
+  <div class="prep active" id="prep">
+    <div class="prep-info"><div class="t">PREP</div><div class="n">备料</div></div>
+    <div class="prep-track"><div class="prep-fill" id="prepFill"></div></div>
+    <div class="prep-time" id="prepTime">10:00</div>
+  </div>
+
+  <div class="spk" id="spk">
+    <div class="spk-tag">开口表达 · <b>总共只有 60 秒</b></div>
+    <div class="ring">
+      <div class="pulse"></div>
+      <svg viewBox="0 0 272 272"><circle class="trk" cx="136" cy="136" r="124"></circle><circle class="bar" id="barS" cx="136" cy="136" r="124"></circle></svg>
+      <div class="val"><div class="num" id="valS">60</div><div class="unit">还剩 SECONDS</div></div>
+    </div>
+    <div class="spk-note" id="spkNote">先抽一张效应，然后合上资料开口</div>
+    <div class="beats">
+      <div class="beat"><div class="bt">0–10s</div><div class="bd">抛结论</div></div>
+      <div class="beat"><div class="bt">10–45s</div><div class="bd">给案例</div></div>
+      <div class="beat"><div class="bt">45–60s</div><div class="bd">收金句</div></div>
+    </div>
+  </div>
+
+  <div class="btns">
+    <button class="btn primary" id="btnTimer">开始备料</button>
+    <button class="btn ghost" id="btnSkip">直接开口</button>
+    <button class="btn ghost full" id="btnResetT">重置</button>
+  </div>
+</section>
+
+<!-- ══ 抽卡 ══ -->
+<section class="view" id="v-draw">
+  <div class="drawzone">
+    <div class="halo" id="halo"></div>
+    <div class="ringline" id="ringline"></div>
+    <div id="particles"></div>
+    <div class="c3d" id="c3d">
+      <div class="ripple" id="ripple"></div>
+      <div class="card3d">
+        <div class="face face-back" id="faceBack">
+          <div class="corner" style="left:15px;top:15px"></div>
+          <div class="corner" style="right:15px;top:15px"></div>
+          <div class="corner" style="left:15px;bottom:15px"></div>
+          <div class="corner" style="right:15px;bottom:15px"></div>
+          <div class="shine"></div>
+          <div class="seal"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5c2.6 2.9 4.4 5.6 4.4 8.3a4.4 4.4 0 1 1-8.8 0c0-2.7 1.8-5.4 4.4-8.3Z"/><path d="M12 11.8V20"/></svg></div>
+          <div class="back-txt" id="backTxt"><div class="a">EFFECT</div><div class="b">尚未萃取</div></div>
+        </div>
+        <div class="face face-front">
+          <div class="glow"></div>
+          <div class="f-empty" id="fEmpty">点一下卡背<br>萃取今天的效应</div>
+          <div class="f-body" id="fBody" style="display:none">
+            <span class="f-cat" id="fCat"></span>
+            <div class="f-name" id="fName"></div>
+            <div class="f-en" id="fEn"></div>
+            <div class="f-rule" id="fRule"></div>
+            <div class="f-quote" id="fQuote"></div>
+            <div class="f-foot"><span id="fNo"></span><span>EFFECT</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="drawbtns">
+    <button class="btn primary" id="btnDraw">抽取一个效应</button>
+    <button class="btn ghost" id="btnBack">翻回</button>
+  </div>
+  <div class="counter">已抽取 <b id="cnt">0</b> 次 · 牌堆剩 <b id="pool">0</b> 张</div>
+  <div class="card" style="margin-top:16px">
+    <div style="font-size:13.5px;color:var(--ink2);line-height:1.7">
+      <b style="color:var(--ink)">怎么用：</b>备料 10 分钟只记「案例 / 数字 / 金句」，不要写逐字稿。抽一张效应当表达的骨架，开口只有 60 秒。
+    </div>
+  </div>
+</section>
+
+<!-- ══ 全览 ══ -->
+<section class="view" id="v-list">
+  <input class="search" id="search" placeholder="搜名称、原理、用法…">
+  <div class="chips" id="chips"></div>
+  <div id="listBody"></div>
+</section>
+
+<!-- ══ 底栏 ══ -->
+<nav class="tabbar">
+  <button class="tab on" data-v="time">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+    <span>计时</span>
+  </button>
+  <button class="tab" data-v="draw">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="2.5"/><path d="M12 8v4"/></svg>
+    <span>抽卡</span>
+  </button>
+  <button class="tab" data-v="list">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+    <span>全览</span>
+  </button>
+</nav>
+
+<!-- ══ 全屏开口模式 ══ -->
+<div class="full" id="full">
+  <div class="full-top">
+    <span class="full-tag">开口表达 · 仅 60 秒</span>
+    <button class="full-x" id="btnFullX">退出</button>
+  </div>
+  <div class="full-ring">
+    <svg viewBox="0 0 300 300"><circle class="trk" cx="150" cy="150" r="138"></circle><circle class="bar" id="barF" cx="150" cy="150" r="138"></circle></svg>
+    <div class="val"><div class="num" id="valF">60</div><div class="unit">SECONDS LEFT</div></div>
+  </div>
+  <div class="full-mid">
+    <div class="lbl" id="fullName">抽一张效应，照着它说</div>
+    <div class="full-q empty" id="fullQ">还没抽卡 —— 现在上去抽一张</div>
+  </div>
+  <div class="full-beats">
+    <div class="fb"><div class="bt">0–10s</div><div class="bd">抛结论</div></div>
+    <div class="fb"><div class="bt">10–45s</div><div class="bd">给案例</div></div>
+    <div class="fb"><div class="bt">45–60s</div><div class="bd">收金句</div></div>
+  </div>
+  <div class="full-btns">
+    <button class="fb-btn" id="btnPause">暂停</button>
+    <button class="fb-btn sec" id="btnAgain">重新计时</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DATA = [{"n":"互惠原理","en":"Reciprocity","cat":"说服与决策","d":"先给予一点有价值的东西，对方会本能地想还回来。","use":"开口前先递一个免费干货：'先给你一条能直接用的 tips。'对方接下来听你说话时，防御会降下来。","ex":"'先送你一句：面试被问缺点时，别答缺点，答你正在补的短板。'","pace":[["0–10s","先给一条对方能立刻用的干货"],["10–45s","再讲你自己的事，它就成了'顺便'"],["45–60s","收在一句可转发的话"]]},{"n":"稀缺效应","en":"Scarcity","cat":"说服与决策","d":"会失去的东西，比能得到的更诱人。","use":"把'我有一个'说成'只剩最后一点'。限时、限量、限人数，任选一个放进表达里。","ex":"'这个方法我只在今晚讲——明天就进长期训练了。'","pace":[["0–10s","亮出稀缺点：只有今天 / 只有这一版"],["10–45s","证明它真的稀缺：有数据有案例"],["45–60s","给出获取动作"]]},{"n":"社会认同","en":"Social Proof","cat":"说服与决策","d":"不确定时，看别人怎么做。","use":"一句'很多人已经在用'就能拉近距离，最好带上具体人群和数量。","ex":"'我带的三十多个新人里，用这个方法的两周后主动汇报变多了。'","pace":[["0–10s","先说'大家都在这么做'"],["10–45s","给具体人群 + 具体变化"],["45–60s","把对方放进那个群体里"]]},{"n":"权威效应","en":"Authority","cat":"说服与决策","d":"我们倾向相信专业来源。","use":"引用一个研究、数据源或真实身份，别超过一处，多了显得堆砌。","ex":"'斯坦福的一项研究里，练复述的学生留存率高出一倍多。'","pace":[["0–10s","抛出权威来源（一处即可）"],["10–45s","讲研究怎么落到你手里"],["45–60s","翻译成大白话"]]},{"n":"损失厌恶","en":"Loss Aversion","cat":"说服与决策","d":"失去100元的痛，约等于得到200元的爽。","use":"把好处翻成代价：不说'能省3小时'，说'你要多熬3小时'。","ex":"'不改流程，你不会立刻出错——但你会一直多花那三个小时。'","pace":[["0–10s","说出不做的代价"],["10–45s","代价要具体到数字或场景"],["45–60s","再给一条出路"]]},{"n":"承诺一致","en":"Commitment Consistency","cat":"说服与决策","d":"人一旦公开表态，就会向自己的话靠拢。","use":"结尾抛一个极小、立刻能答应的动作：'你今天就试一次，回复我一个数字。'","ex":"'先别全信我——今晚试一次，明天告诉我成没成。'","pace":[["0–10s","提出一个小到不用犹豫的要求"],["10–45s","降低执行门槛"],["45–60s","约定反馈，形成闭环"]]},{"n":"曝光效应","en":"Mere Exposure","cat":"说服与决策","d":"重复见到的东西，可信度和好感都会上升。","use":"同一个词在1分钟里出现三次等于强调三次。刻意重复你的核心关键词。","ex":"把'切换成本'这三个字，在一分钟里稳稳放三次。","pace":[["0–10s","亮出核心关键词"],["10–45s","换句式再说两遍同样的词"],["45–60s","用这个词收尾"]]},{"n":"框架效应","en":"Framing Effect","cat":"认知框架","d":"同一件事，换个说法，决策就变了。","use":"同一份资料准备正反两版，选更有利的那面讲。注意：只换说法，不换事实。","ex":"'成功率90%'不如'失败率只有10%'让人安心——同一件事。","pace":[["0–10s","用更有利的框架开场"],["10–45s","同一事实，只换说法不换骨"],["45–60s","再重复一次框架词，强化印象"]]},{"n":"锚定效应","en":"Anchoring","cat":"认知框架","d":"第一个出现的数字，会绑架后面的判断。","use":"先给一个参照锚点，再给你的结论。锚点要显得客观、具体、不像推销。","ex":"'行业平均交付要5天。我们把它压到2天。'","pace":[["0–10s","先报参照数字"],["10–45s","拉开对比差距"],["45–60s","落到'所以值得试'"]]},{"n":"首因效应","en":"First Impressions","cat":"认知框架","d":"最先留下的印象，权重最大。","use":"第一句决定整场的态度。别用'嗯''那个''大家好'开头。","ex":"'我这个月把汇报时间从40分钟压到了12分钟。'","pace":[["0–10s","一句带数字的结论当第一句"],["10–45s","再补逻辑"],["45–60s","留一个让人想问的问题"]]},{"n":"近因效应","en":"Recency Effect","cat":"认知框架","d":"最后听到的，记得最牢。","use":"把最想被记住的那句放在最后15秒，说完就停，不要再补'就是这样'。","ex":"'记住一句话：先减法，再加法。'（然后闭嘴）","pace":[["0–10s","正常展开"],["10–45s","铺事实"],["45–60s","金句 + 果断停"]]},{"n":"可得性启发","en":"Availability Heuristic","cat":"认知框架","d":"好记的故事会被高估发生概率。","use":"一个具体故事胜过一串抽象道理。但讲完要补一句数据，避免把个案当普遍。","ex":"先讲那一个同事的翻车现场，再报一句'这类问题在新人里占三成'。","pace":[["0–10s","抛一个人和一件具体事"],["10–45s","补一个群体数据兜底"],["45–60s","落到可迁移的做法"]]},{"n":"奥卡姆剃刀","en":"Occam's Razor","cat":"认知框架","d":"如无必要，勿增实体——最简解释通常最可信。","use":"1分钟里只给一个核心原因。第二个原因会稀释第一个的力度。","ex":"不说'流程复杂且标准不统一'，只说'标准不统一'。","pace":[["0–10s","一句话给出唯一主因"],["10–45s","只用一件事证明它"],["45–60s","给一个动作"]]},{"n":"蔡格尼克效应","en":"Zeigarnik Effect","cat":"记忆与注意","d":"没做完的事，比做完的更容易记住。","use":"开头留一个未闭合的钩子，听众会把注意力留给'后来呢'。","ex":"'我漏了一件很小的事，但就是这件小事毁掉了整场汇报。'","pace":[["0–10s","抛悬念，不给答案"],["10–45s","顺着钩子展开，节奏别泄"],["45–60s","补上答案并给方法"]]},{"n":"峰终定律","en":"Peak-End Rule","cat":"记忆与注意","d":"一段体验的记忆，由最高峰和结尾决定。","use":"设计一个记忆峰值（一个数字、一句话、一个动作），并把结尾放在情绪或画面上。","ex":"峰值：'当时屏幕上只有12行字。' 结尾：'现在我把那12行贴在工位上。'","pace":[["0–10s","平铺直入，别浪费峰值配额"],["10–45s","在25秒处放最强的一句"],["45–60s","用画面或动作收尾"]]},{"n":"注意力残留","en":"Attention Residue","cat":"记忆与注意","d":"脑子还想着上一件事时，新任务就做不好。","use":"开口前花5秒'切场'：站起来、深呼吸、把上一件事说一声'先放下'。","ex":"'刚才那个会先到这儿——现在说第二件事。'","pace":[["0–5s","明确切场"],["5–55s","完整表达一件事"],["55–60s","清空：不追加新信息"]]},{"n":"米勒定律","en":"Miller's Law","cat":"记忆与注意","d":"人短期记忆大约只装得下7±2个组块。","use":"1分钟表达最多讲3点。分成3组，每组不超过20秒。","ex":"'三件事：第一，第二，第三。'每点给一个例子就够。","pace":[["0–10s","报出结构：一共三点"],["10–45s","三点各11秒，每点一例"],["45–60s","重述那三个关键词"]]},{"n":"遗忘曲线","en":"Ebbinghaus Curve","cat":"记忆与注意","d":"学过的东西会快速衰减，间隔复习最有效。","use":"把长内容切成三段讲，中间让听众复述一次——复述本身就是一次复习。","ex":"'我刚才说的三条，哪一条你觉得最难做到？'","pace":[["0–30s","讲第一段"],["30–40s","让听众复述一遍"],["40–60s","讲第二、三段并收尾"]]},{"n":"双通道编码","en":"Dual Coding","cat":"记忆与注意","d":"文字配画面，比纯文字记得牢。","use":"口述时给一个视觉锚：数字、颜色、方向、类比。抽象内容一律挂到画面上。","ex":"不说'效率提升'，说'我每天多出一小时——一个完整番茄钟'。","pace":[["0–10s","先给画面"],["10–45s","用画面解释抽象概念"],["45–60s","让画面收尾"]]},{"n":"情感说服","en":"Affective Reasoning","cat":"情绪与动机","d":"情绪比逻辑更能驱动决定。","use":"先让听众感到'这和我有关'，再给理性理由。开场讲一个人，不讲一个道理。","ex":"'上周有个人在群里打了四十分钟字，最后说算了。'","pace":[["0–12s","唤起共鸣或痛感"],["12–45s","理性补上为什么值得"],["45–60s","给情绪一个出口"]]},{"n":"禀赋效应","en":"Endowment Effect","cat":"情绪与动机","d":"已经拥有的东西，估值会更高。","use":"把对方已有的东西变成杠杆：'你刚才说的那个流程，其实已经具备七成了。'","ex":"'你不用学新东西，你只是缺一个顺序。'","pace":[["0–12s","指出对方已有的资产"],["12–45s","只补缺口，不重建"],["45–60s","让他自己确认'我已经有'"]]},{"n":"目标梯度效应","en":"Goal-Gradient Effect","cat":"情绪与动机","d":"越接近终点，动力越强。","use":"把大目标切成可见的小刻度。当对方完成80%，再推一下。","ex":"'你只剩最后一步：把开头那句话换成我刚才给的那句。'","pace":[["0–15s","指出现有进度"],["15–45s","明确'只差哪一步'"],["45–60s","降低这最后一步的门槛"]]},{"n":"心理账户","en":"Mental Accounting","cat":"情绪与动机","d":"同样一笔钱，分到不同账本，感觉完全不同。","use":"把花销换算进对方更在意的账本里。","ex":"'每天两块钱，一个月六十——不到一杯奶茶。'","pace":[["0–12s","换算账本"],["12–45s","给出对比参照"],["45–60s","让账变得值得记"]]},{"n":"心流触发","en":"Flow Trigger","cat":"情绪与动机","d":"清晰的即时反馈 + 略高于当前水平的难度，最容易进入专注。","use":"说明你打算做的一件事：目标可量化、每一步有反馈。","ex":"'今天只做一件事：写完300字并发出去。做完就算赢。'","pace":[["0–12s","把目标说到可量化"],["12–45s","说清即时反馈长什么样"],["45–60s","明确'做到就算赢'的界线"]]},{"n":"金字塔原理","en":"Pyramid Principle","cat":"表达结构","d":"先结论，后论据。以上统下，归类分组。","use":"1分钟版：10秒结论 + 45秒三个论据 + 5秒重申结论。顺序不能反。","ex":"'结论是能提前。理由有三个：模板、权限、缓冲。'","pace":[["0–10s","结论先行"],["10–45s","三点论据，每点一例"],["45–60s","重申结论，停下"]]},{"n":"SCQA 结构","en":"Situation-Complication-Question-Answer","cat":"表达结构","d":"情境 → 冲突 → 疑问 → 回答。经典开场四步。","use":"适合讲'原来如何→出了什么问题→所以怎么办'的故事型表达。","ex":"'过去靠邮件同步（S）→ 现在三十个人等两小时（C）→ 怎么把等待变零（Q）→ 改成异步周报（A）。'","pace":[["0–12s","S 情境，让听众点头"],["12–25s","C 冲突，制造张力"],["25–60s","Q+A 给出方案"]]},{"n":"PREP 结构","en":"Point-Reason-Example-Point","cat":"表达结构","d":"观点 → 理由 → 例子 → 重申观点。极稳的开场公式。","use":"临时被点名发言时的保命结构，60秒刚好走完一轮。","ex":"'我觉得该砍（P）因为投入产出不成比例（R）上周它占了三成时间却零产出（E）所以建议砍掉（P）。'","pace":[["0–8s","P 亮观点"],["8–25s","R 说理由"],["25–50s","E 举例子"],["50–60s","P 收回来"]]},{"n":"费曼技巧","en":"Feynman Technique","cat":"表达结构","d":"讲不清，说明还没真懂——用大白话讲给外行听。","use":"把专业词全部换成生活比喻。听众问'这是什么意思'，就是漏洞。","ex":"不说'降低认知负荷'，说'别让人一次记十件事，一次一件。'","pace":[["0–10s","用一句话生活比喻开场"],["10–45s","只保留一个比喻，贯穿到底"],["45–60s","补一句精确表述"]]},{"n":"汉弗莱图式","en":"Humphrey's Figures","cat":"表达结构","d":"好的口头表达由开场、概括、展开、结尾四种功能组成。","use":"照功能切时间：开场10秒抓人，概括10秒给地图，展开35秒给料，结尾5秒给动作。","ex":"开场讲场景 →'我分三块说' → 逐块展开 →'记住一句话就够'。","pace":[["0–10s","开场：场景或数字"],["10–20s","概括：报出结构"],["20–55s","展开：内容主体"],["55–60s","结尾：一个动作"]]},{"n":"故事弧线","en":"Narrative Arc","cat":"表达结构","d":"起（现状）→ 承（遇到的事）→ 转（转折）→ 合（现在的我）。","use":"适合讲亲身经历。1分钟刚好走完一个完整小弧线，结尾落在'所以现在我'。","ex":"起：我每周写周报 → 承：写到第三周开始编 → 转：我改成只记三件事 → 合：现在十分钟能写完。","pace":[["0–12s","起：交代常态"],["12–28s","承：出现裂缝"],["28–50s","转：那个决定"],["50–60s","合：现在是什么样"]]},{"n":"对比结构","en":"Contrast Structure","cat":"表达结构","d":"A 和 B 一摆，差异自己会说话。","use":"用'以前 / 现在''错的 / 对的'两栏对照，比连续描述省一半时间。","ex":"错的：等需求方想清楚。对的：先给三选一让他改。","pace":[["0–12s","摆出旧的"],["12–40s","摆出新的，并说清差别在哪"],["40–60s","给一句判断标准"]]},{"n":"电梯法则","en":"Elevator Pitch Rule","cat":"表达结构","d":"30秒说不清的事，多半是自己还没理清。","use":"强制压缩：'你是谁 / 你做什么 / 凭什么信你'各一句，30秒版先成立，再填肉。","ex":"'我做流程诊断，专门帮研发把周会从90分钟压到30分钟。已经帮三家公司做到，平均每周省2小时。'","pace":[["0–10s","你是谁 + 你解决什么"],["10–40s","怎么做 + 凭什么信你"],["40–60s","一个具体的下一步"]]},{"n":"旁观者效应","en":"Bystander Effect","cat":"社会心理学","d":"在场的人越多，个体出手相助的概率反而越低。","use":"要让人行动，就缩小人群感：'就你一个人能拍板。'别让责任被稀释。","ex":"'会上十个人都没接这个话——现在只剩你和我。'","pace":[["0–12s","点名缩小范围"],["12–45s","强调只有他能做"],["45–60s","给一个极小动作"]]},{"n":"认知失调","en":"Cognitive Dissonance","cat":"社会心理学","d":"行为和想法打架时，人宁可改想法。","use":"先让人做一个小承诺（小承诺会自我放大），再往大处引。","ex":"'你已经花了十分钟看这个——要不要顺手把它做完？'","pace":[["0–12s","先要一个小小的'是'"],["12–45s","指出投入与结论的落差"],["45–60s","提供消除不适的出口"]]},{"n":"情绪感染","en":"Emotional Contagion","cat":"社会心理学","d":"情绪像病毒，会在人群里自动传染。","use":"开头先定调情绪。开场的声音、语速、表情会决定后面整场的气氛。","ex":"先讲一句让人笑出来的事，再讲严肃结论。","pace":[["0–15s","用一个情绪点开场定调"],["15–50s","保持同一情绪基调"],["50–60s","收在一个让人点头的温度上"]]},{"n":"沉默的螺旋","en":"Spiral of Silence","cat":"社会心理学","d":"持少数派观点的人会闭嘴，于是多数意见显得更大。","use":"主动承认'有人不同意'，反而会让人敢开口。你拿到的是真反馈。","ex":"'我知道有人觉得这事没意义——我就是想赌那七成。'","pace":[["0–12s","主动点出反对意见"],["12–45s","讲你为什么还坚持"],["45–60s","邀请对方质疑"]]},{"n":"聚光灯效应","en":"Spotlight Effect","cat":"社会心理学","d":"总以为别人在盯着自己，实际注意力远没那么集中。","use":"用来化解紧张：'别人只关心他们自己，你讲砸了也没人记得。'","ex":"'你觉得自己说错时，旁边的人早就在想晚饭吃什么了。'","pace":[["0–12s","点破他在自我放大"],["12–45s","给一个外部视角"],["45–60s","把注意力拉回该讲的事"]]},{"n":"基本归因错误","en":"Fundamental Attribution Error","cat":"社会心理学","d":"把别人的行为归因于性格，把自己的归因于情境。","use":"讲别人的问题时少贴标签，多说约束条件。这让你显得客观，也更容易被接受。","ex":"不说'他不配合'，说'他那边三个会连着，大概没时间。'","pace":[["0–12s","先别下人格判断"],["12–45s","补客观约束条件"],["45–60s","给一个可行的解法"]]},{"n":"睡眠者效应","en":"Sleeper Effect","cat":"社会心理学","d":"来源会随时间被淡忘，说服力却留存下来。","use":"抛一个有力的数字或金句，别急着解释来源。观众先记住结论，之后才会想起来信你。","ex":"先甩出'每天省两小时'，来源晚半分钟再补。","pace":[["0–10s","先给最有冲击力的那句"],["10–45s","慢一点补依据"],["45–60s","回到那句结论"]]},{"n":"刻板印象威胁","en":"Stereotype Threat","cat":"社会心理学","d":"被负面刻板印象框住时，人的表现会真的变差。","use":"当众提问弱势一方前，先给一句明确的开场肯定，把框架抢过来。","ex":"'你之前那套复盘方法我们都很认可，先接着它说。'","pace":[["0–12s","先给一句具体肯定"],["12–45s","只让他答擅长的问题"],["45–60s","当场肯定他的回答"]]},{"n":"道德许可效应","en":"Moral Licensing Effect","cat":"社会心理学","d":"做了一件好事后，人会允许自己接着做点坏事。","use":"别拿'我是好人'当理由。人会自我授权，反而放松标准。","ex":"'你一直很负责，所以我才直说——这次可以先不做。'","pace":[["0–12s","承认对方的优点"],["12–45s","明确给出这次的例外"],["45–60s","说清这次例外的边界"]]},{"n":"沉没成本谬误","en":"Sunk Cost Fallacy","cat":"社会心理学","d":"投入越多，越不甘心停，于是继续往坑里走。","use":"要说服一个人放弃，就把'已经花掉的'和'接下来要花的'分开算。","ex":"'前六个月的沉没成本我们不看。只问一件事：再投三个月，这事能成吗？'","pace":[["0–12s","把过去的投入搁置"],["12–45s","只按未来收益重算"],["45–60s","给一个继续/停的判据"]]},{"n":"宜家效应","en":"IKEA Effect","cat":"社会心理学","d":"自己动手做出来的东西，人会赋予更高估值。","use":"让对方参与哪怕一小步，参与感会替你说服他。","ex":"'这条你自己改了个数——就按你的版本走。'","pace":[["0–12s","让对方出一小步"],["12–45s","肯定那一步的价值"],["45–60s","顺势推进整体"]]},{"n":"相对剥夺感","en":"Relative Deprivation","cat":"社会心理学","d":"很多痛苦来自比较，而不是绝对处境。","use":"别拿'已经很好了'去劝。要做的是换参照系，或者承认那个比较。","ex":"'你不是不够好，你是跟一个不存在的参照比。'","pace":[["0–12s","承认他的比较对象"],["12–45s","把参照系摆出来"],["45–60s","换回自己的刻度"]]},{"n":"污名效应","en":"Stigma Effect","cat":"社会心理学","d":"一旦被贴上标签，人们就会用刻板印象对你。","use":"别在开场自曝短板标签。描述行为，不描述身份。","ex":"不说'我是理工科的，说话直'，说'我习惯先说结论。'","pace":[["0–12s","避开身份标签"],["12–45s","只描述行为"],["45–60s","用具体做法建立印象"]]},{"n":"权力意志悖论","en":"Power Paradox","cat":"社会心理学","d":"权力会让人更偏执、更屏蔽异议、也更愿意冒险。","use":"当你是决策者时，主动请一个能反驳你的人在场。","ex":"'我先让老王泼冷水，你说完我再定。'","pace":[["0–12s","主动邀请反对意见"],["12–45s","让反驳说完不打断"],["45–60s","说明你如何处理异议"]]},{"n":"帕金森定律","en":"Parkinson’s Law","cat":"管理学","d":"工作会自动膨胀，把可用时间填满。","use":"给任务配硬截止而不是'尽快'。截止越模糊，时间越长。","ex":"'这件事下午四点给我，不讨论要不要加时间。'","pace":[["0–12s","给明确截止时间"],["12–45s","定义完成标准"],["45–60s","约定逾期怎么办"]]},{"n":"霍桑效应","en":"Hawthorne Effect","cat":"管理学","d":"被观察时，人会改变自己的行为表现。","use":"想让人持续做对的事，别靠盯人。改成让进度可见，行为自己会跟上。","ex":"不派人在旁边盯着，改成一张所有人可见的进度表。","pace":[["0–12s","承认盯人无效"],["12–45s","改成让进展可见"],["45–60s","说明怎么不打扰地看"]]},{"n":"丰田看板","en":"Kanban","cat":"管理学","d":"只按需生产，看板上的空位就是任务指令，库存即浪费。","use":"说清'现在该做的是哪一件'。多任务并行不如单件流到底。","ex":"'我们一次只推一件，完成了再开下一件。'","pace":[["0–12s","点出同时开太多件事的问题"],["12–45s","换成一次一件的规则"],["45–60s","给出完成才推进的信号"]]},{"n":"邓巴数定律","en":"Dunbar’s Number","cat":"管理学","d":"人的稳定社交圈上限大约一百五十人，超了就只是弱连接。","use":"别指望认识的人都能互相帮忙。真正能托付的是十几个人。","ex":"'通讯录两千人，真正出事能打通的，大概十五个。'","pace":[["0–12s","点出联系很多≠关系深"],["12–45s","给出真实可用的层数"],["45–60s","让对方说出那十几个名字"]]},{"n":"帕累托法则","en":"Pareto Principle","cat":"管理学","d":"八成结果来自两成原因。","use":"任何时间紧的场合，先砍最不产生价值的二成，而不是平均用力。","ex":"'这十件事里有两件真有用，其他八件只是让我们觉得忙。'","pace":[["0–12s","列出全部但分成两堆"],["12–45s","只展开有用的那堆"],["45–60s","明确这周就砍掉另一堆"]]},{"n":"关键路径法","en":"Critical Path Method","cat":"管理学","d":"总工期由最长那条依赖链决定，不是所有事加起来。","use":"排期时先找那条最长的链，加人手到其他活上没用。","ex":"'这不是十件事，是五件。其中第二件卡着所有后面的。'","pace":[["0–12s","把任务拉成一条链"],["12–45s","指出最长的那条"],["45–60s","资源只压在那一环"]]},{"n":"OODA 复盘","en":"OODA Loop","cat":"管理学","d":"观察—判断—决策—行动，快速闭环才算真的学到。","use":"复盘不要停在'下次注意'。要落到一个具体动作，一个负责人，一个时间。","ex":"'下次这条卡点由我周四之前解掉，写在这一行。'","pace":[["0–12s","说清结果和差距"],["12–45s","找到真正的卡点"],["45–60s","落一个动作+人+时间"]]},{"n":"MVP 验证","en":"Minimum Viable Product","cat":"管理学","d":"先做最小的、能被验证的版本，别做完整产品。","use":"把'我们要做出来'换成'我们先验证哪一件事'。","ex":"'先不管好不好看，只验一件事：他们会不会真的点。'","pace":[["0–12s","砍到只剩一个假设"],["12–45s","说出怎么验证它"],["45–60s","约定验证不通过就停"]]},{"n":"灰度发布","en":"Canary Release","cat":"管理学","d":"先小流量验证，再全量放开。","use":"提新方案时永远带一个'先在哪儿试'，风险立刻小一半。","ex":"'先给一个组用两周，出问题影响面只有十分之一。'","pace":[["0–12s","主动说清风险"],["12–45s","给小范围验证方案"],["45–60s","定好扩大和回滚的条件"]]},{"n":"双环学习","en":"Double-Loop Learning","cat":"管理学","d":"不止修正动作，还要质疑当初的假设。","use":"问题反复发生时，别改做法，去查那个一直没验证的前提。","ex":"'这不是执行力问题。我们一开始就没验证那条渠道值得投。'","pace":[["0–12s","承认表面动作无效"],["12–45s","上翻一层到假设"],["45–60s","提出要验证的新前提"]]},{"n":"15% 到位法则","en":"The 15% Rule","cat":"管理学","d":"再投入 15% 的时间做改良的公司，会被市场淘汰。","use":"维护永远排不进计划，就等于没做。给它固定的时间片。","ex":"'每周留两小时专门修那件一直凑合用的东西。'","pace":[["0–12s","指出'维护'总被挤掉"],["12–45s","给出固定时间片"],["45–60s","锁定一个维护对象"]]},{"n":"心理安全感","en":"Psychological Safety","cat":"管理学","d":"敢说'我可能错了'的团队，才学得到东西。","use":"开会时先自己说一个错，团队才敢讲真话。领导不认错，下面就不报问题。","ex":"'我先说，我上周那个判断是错的。'","pace":[["0–12s","率先承认自己的错"],["12–45s","追问团队的相反意见"],["45–60s","当场采纳一条"]]},{"n":"SMART 目标","en":"SMART Goal","cat":"管理学","d":"目标要具体、可衡量、可达成、相关、有时限。","use":"把'提升一下''优化一下'翻译成'从 X 到 Y，用 Z 天'。","ex":"'不说优化流程：把这八个人的交接从三天压到一天，两周内。'","pace":[["0–12s","把模糊目标量化"],["12–45s","对齐相关性和可行性"],["45–60s","定死截止日期"]]},{"n":"马太效应","en":"Matthew Effect","cat":"管理学","d":"强者恒强，弱者恒弱，起步阶段就有放大作用。","use":"资源要压在可能赢的那一处。第一批客户、第一版、第一篇，都别分散。","ex":"'我们只做一件事做到有人主动来问，其余先停。'","pace":[["0–12s","指出资源在摊薄"],["12–45s","选定唯一突破口"],["45–60s","承诺集中打到赢"]]},{"n":"零和博弈","en":"Zero-Sum Game","cat":"管理学","d":"一方的赢，正好是另一方的输。","use":"遇到分配冲突时，先摊开这件事是不是真的零和——很多时候不是。","ex":"'你多要的两小时，不是我少给的，是总量就这么多——但如果总量能加，就不用分。'","pace":[["0–12s","先把总量摆在桌上"],["12–45s","试着把零和变成正和"],["45–60s","若不能，给出公平规则"]]},{"n":"确认偏误","en":"Confirmation Bias","cat":"认知偏差","d":"人会不自觉只看支持自己已有看法的证据，忽略反例。","use":"讲结论时主动补一条反面证据。能自己先说反例，可信度会立刻翻倍。","ex":"'先说我的弱点：我这招在预算紧的时候失效。'","pace":[["0–12s","亮结论"],["12–35s","给最强证据"],["35–50s","主动补一条反面"],["50–60s","说明何时不适用"]]},{"n":"可得性偏差","en":"Availability Bias","cat":"认知偏差","d":"想起来容易的事，就被判断为更常发生。","use":"要纠正别人的直觉偏差，直接给分母和基准率，别只讲个案。","ex":"'空难上头条，飞机里程更安全——因为飞得多。'","pace":[["0–12s","说出他的直觉"],["12–45s","给基准率或分母"],["45–60s","重估风险大小"]]},{"n":"锚定偏差","en":"Anchoring Bias","cat":"认知偏差","d":"先出现的数字会锚住后续所有估算，哪怕明知不相关。","use":"想让对方接受你的方案，先抛一个他认同的数字做锚。","ex":"'这个价不到一顿饭钱——也就你现在多点的那杯咖啡。'","pace":[["0–12s","抛锚点"],["12–45s","让对方确认锚点合理"],["45–60s","再给结论，落差自然变小"]]},{"n":"沉没成本偏差","en":"Sunk Cost Bias","cat":"认知偏差","d":"已投入太多，反而不想停。偏差的根源是不肯承认损失已发生。","use":"说服人止损时，把'追加投入'和'放弃损失'分成两笔账来看。","ex":"'我们已经花了两百万。但那是两百万，和这项目能不能成，是两个问题。'","pace":[["0–12s","承认已投入是事实"],["12–45s","把它切成历史账"],["45–60s","只按未来重算一次"]]},{"n":"损失厌恶偏差","en":"Loss Aversion Bias","cat":"认知偏差","d":"亏 100 的痛苦约等于赚 200 的快乐。","use":"想让人行动，讲不做的损失比做的好处有效一倍。","ex":"'不改流程，你不会今天出事，但你会一直多花那三个小时。'","pace":[["0–12s","说出代价"],["12–45s","让代价具体到场景"],["45–60s","给一条低成本的出路"]]},{"n":"近因偏差","en":"Recency Bias","cat":"认知偏差","d":"最近发生的事权重最高，长期趋势被忽略。","use":"别用最近一周的数据代表长期。做判断时把时间轴拉开。","ex":"'这两周很顺，就以为一直很顺——把去年同期的数一起看呢？'","pace":[["0–12s","指出只用近期数据的问题"],["12–45s","把时间轴拉长"],["45–60s","给出校正后的判断"]]},{"n":"后见之明偏差","en":"Hindsight Bias","cat":"认知偏差","d":"事后总以为结果当初就该料得到。","use":"复盘时警惕这条。一件事看起来必然，往往是因为你已经知道结果。","ex":"'别用'我早知道'下结论——当时那条信息根本没到手。'","pace":[["0–12s","给反例：当时拿不到的信息"],["12–45s","补上该有的判断依据"],["45–60s","落一个当时可用的判据"]]},{"n":"过度自信偏差","en":"Overconfidence Bias","cat":"认知偏差","d":"高估自己的判断准确率，低估不确定性。","use":"给方案时标一个置信度和一个失败信号，显得专业也显得诚实。","ex":"'我有七成把握，两周后如果 X 没动，就说明我错了。'","pace":[["0–12s","给结论加概率"],["12–45s","说清什么情况算错"],["45–60s","约定验证时点"]]},{"n":"代表性偏差","en":"Representativeness Heuristic","cat":"认知偏差","d":"凭'像不像'判断，而不是凭实际比例判断。","use":"谈概率时把基准比例摆出来，别让对方靠印象估。","ex":"'像是有钱人，但有钱人里有几成会在店里问价——这个比例很低。'","pace":[["0–12s","指出他用的是'像不像'"],["12–45s","给真实基准比例"],["45–60s","按比例重下判断"]]},{"n":"光环效应","en":"Halo Effect","cat":"认知偏差","d":"一个突出优点会把整个人整体抬高。","use":"别指望一个漂亮数字让人信服你全部。要信，得靠第二条独立证据。","ex":"'那家店装修很好吃'——装修和味道是两件独立的事。'","pace":[["0–12s","承认那个亮点是真的"],["12–45s","拆成独立维度看"],["45–60s","补一条别的证据"]]},{"n":"心理账户偏差","en":"Mental Accounting Bias","cat":"认知偏差","d":"钱按不同的心理账户分类，感觉完全不同。","use":"要推动一笔开销，就把它挪进对方更在意的那个账户。","ex":"'这不是成本，是省下来的时间。把它按小时算，一天两块。'","pace":[["0–12s","换一个账户归类"],["12–45s","用对方的单位重算"],["45–60s","让数字变得可接受"]]},{"n":"框架无关性偏差","en":"Framing Insensitivity","cat":"认知偏差","d":"不同说法描述同一件事，人常给出完全不同的判断。","use":"这既是偏差也是武器。同一个事实，正着说反着说，结论能差很远。","ex":"'存活率90%'和'死亡率10%'——同一件事，两种心情。'","pace":[["0–12s","说出同一个事实"],["12–45s","用两种框说一遍"],["45–60s","问对方哪种框更准"]]},{"n":"规划谬误","en":"Planning Fallacy","cat":"认知偏差","d":"总把未来估得比实际乐观，尤其低估耗时。","use":"报工期时别问'你觉得要多久'，问'上次同类实际用了多久'。","ex":"'不做估计，只查历史：上次这类改动实际花了三周。'","pace":[["0–12s","否定主观估计"],["12–45s","搬出同类历史数据"],["45–60s","给带缓冲的承诺"]]},{"n":"自利归因偏差","en":"Self-Serving Bias","cat":"认知偏差","d":"成功了归功自己，失败归咎外部。","use":"复盘时把这条单拎出来问。自己在哪个环节归因最快？","ex":"'这次成了是我判断准。那次失败呢——是不是同一个判断逻辑？'","pace":[["0–12s","承认这条人人都有"],["12–45s","对照成败两次归因"],["45–60s","改成统一标准"]]},{"n":"群体极化","en":"Group Polarization","cat":"认知偏差","d":"一群人讨论后，立场会比个人时更极端。","use":"想拿真意见，就先让每个人独立写下答案，再一起聊。","ex":"'先各自写一分钟再讨论——不然就是跟着最敢说的人走。'","pace":[["0–12s","要求独立先写"],["12–45s","再让分歧充分出现"],["45–60s","用数据而不是音量定论"]]},{"n":"现状偏差","en":"Status Quo Bias","cat":"认知偏差","d":"维持现状的阻力，总大于改变带来的收益——哪怕收益更大。","use":"别一次推全套。先推一步最小改动，降低对方的迁移成本。","ex":"'先不改流程，只改第一句话，明天就能试。'","pace":[["0–12s","承认换成本很高"],["12–45s","只提最小一步"],["45–60s","明确可随时退回"]]},{"n":"滑坡谬误","en":"Slippery Slope","cat":"逻辑谬误","d":"把一连串可能的坏结果说成必然。","use":"被滑坡攻击时，别跟着往下推，直接把中间那几步的概率拿出来。","ex":"'第二步到第五步都不是必然，中间任何一步都可以刹车。'","pace":[["0–12s","指出这一步不是必然"],["12–45s","列出中间可断点"],["45–60s","给出真正的风险在哪"]]},{"n":"稻草人谬误","en":"Straw Man","cat":"逻辑谬误","d":"把对方观点改成一个更容易打倒的版本。","use":"听到过强的指控时，先把对方原话复述一遍，逼出真问题。","ex":"'你原话是'排期要更保守'，不是我说的'不许改需求'——对吧？'","pace":[["0–12s","准确复述对方原话"],["12–45s","指出偷换在哪"],["45–60s","回到真问题上"]]},{"n":"诉诸权威","en":"Appeal to Authority","cat":"逻辑谬误","d":"用某人说的代替论证本身。对方不在场时更明显。","use":"用权威时必须让权威可查。同时补一句这个判断的独立理由。","ex":"'有研究这么说——但更重要的是，它是双盲做的。'","pace":[["0–12s","给可查的来源"],["12–45s","补独立理由"],["45–60s","说明适用边界"]]},{"n":"诉诸大众","en":"Bandwagon Fallacy","cat":"逻辑谬误","d":"多数人相信，所以一定对。","use":"面对'大家都这么做'时，把从众和论证分开。热度不是论据。","ex":"'用的人多是事实，但要不要用，取决于它解不解决我们的问题。'","pace":[["0–12s","承认这个事实"],["12–45s","区分热度与适配"],["45–60s","给出自己的判据"]]},{"n":"诉诸情感","en":"Appeal to Emotion","cat":"逻辑谬误","d":"用恐惧或同情代替理由。","use":"被情绪推着走时，认下那份情绪，但把它和事实分开核。","ex":"'我很理解你着急。那我们只核一件事：证据够不够。'","pace":[["0–12s","先接住情绪"],["12–45s","只核事实层"],["45–60s","情绪归情绪，结论归结论"]]},{"n":"稻草人式转移","en":"Red Herring","cat":"逻辑谬误","d":"岔开话题，把问题换成一个更好答的。","use":"被带跑时，一句话拉回来：'这个先放一边，刚才那个问题还没答。'","ex":"'钱的事不急——先说说你为什么又改需求。'","pace":[["0–12s","点出在岔开"],["12–45s","把话题拽回来"],["45–60s","逼出一个直接回答"]]},{"n":"循环论证","en":"Circular Reasoning","cat":"逻辑谬误","d":"用结论来证明结论。听起来有理，其实绕了一圈。","use":"检查自己或别人的理由里，是否出现了要证明的那句话。","ex":"'他很专业，因为他有经验；他有经验，因为他很专业。'","pace":[["0–12s","把理由和结论并排写出来"],["12–45s","找出重复项"],["45–60s","换一条真依据"]]},{"n":"以偏概全","en":"Hasty Generalization","cat":"逻辑谬误","d":"凭少数样本推出全体结论。","use":"听到'我认识的都怎样'时，问一句：那整体比例是多少。","ex":"'我认识的都在加班——但你身边就这几个人，样本太小了。'","pace":[["0–12s","承认这个观察"],["12–45s","指出样本太小"],["45–60s","用更大数据替代"]]},{"n":"诉诸无知","en":"Argument from Ignorance","cat":"逻辑谬误","d":"没证据证明不成立，就当成成立。","use":"分清'没发现'和'不存在'。别用前者冒充后者。","ex":"'查不到风险，不等于没有风险，只是还没人查。'","pace":[["0–12s","拆开两件事"],["12–45s","说明查证成本"],["45–60s","给出验证动作"]]},{"n":"因果倒置","en":"Post Hoc Fallacy","cat":"逻辑谬误","d":"先后发生就当成因果。","use":"谈因果至少给一个机制。不只说'先后就有关'。","ex":"'先降的税后涨的销量，不等于降税带来了销量。中间还有别的事。'","pace":[["0–12s","指出只是先后"],["12–45s","补一个因果机制"],["45–60s","给出更可信的解释"]]},{"n":"忽略共同原因","en":"Ignoring a Common Cause","cat":"逻辑谬误","d":"两个东西一起变，就当成一个引起另一个。","use":"遇到漂亮的相关性，先问：有没有第三个东西在推着两个一起动。","ex":"'吃得多的人跑得多，不一定是吃多了才跑——也可能是练得多的人胃口好。'","pace":[["0–12s","把相关性摆出来"],["12–45s","找那个共同推手"],["45–60s","给真正的变量"]]},{"n":"无中生有","en":"Non Sequitur","cat":"逻辑谬误","d":"结论跟前面的理由完全接不上，中间少一大截。","use":"自检最有效：把结论前面加'所以'，读一遍，接不上就断了。","ex":"'他很努力，所以这事一定对'——努力和结论之间少了哪一步？'","pace":[["0–12s","补上缺的那一步"],["12–45s","没有就承认没有"],["45–60s","换一个站得住的结论"]]},{"n":"非此即彼","en":"False Dilemma","cat":"逻辑谬误","d":"把选项压成两个，好像只有这两种可能。","use":"被逼着二选一时，主动把中间选项找出来，通常是第三、第四条路。","ex":"'其实还有第三个：不改流程，也不加人手，只改交接顺序。'","pace":[["0–12s","承认两个选项各有代价"],["12–45s","找出被藏起来的中间选项"],["45–60s","给出组合方案"]]},{"n":"诉诸传统","en":"Appeal to Tradition","cat":"逻辑谬误","d":"以前这么干，所以现在还得这么干。","use":"问一句：那时候的条件和现在一样吗。变了就该换。","ex":"'三年前这么干是因为那时候客户都在现场，现在远程了，凭什么还照旧。'","pace":[["0–12s","问条件变没变"],["12–45s","说出变的那个变量"],["45–60s","提出按新条件重定规则"]]},{"n":"诉诸新品","en":"Appeal to Novelty","cat":"逻辑谬误","d":"因为是新的、先进，就默认更好。","use":"新工具一样要过老问题：它解决的是我的问题，还是它自己的问题。","ex":"'最新的那个更贵也更复杂——先说它替我省了几分钟。'","pace":[["0–12s","认可它是新的"],["12–45s","回到自己的场景"],["45–60s","用净收益判断值不值"]]},{"n":"不当类比","en":"False Analogy","cat":"逻辑谬误","d":"表面像，结构不同，因此结论不成立。","use":"用类比前先问：两个东西的关键差别在哪。关键差别会不会推翻了结论。","ex":"'说服像跑步——但跑步有终点，说服没有。不一样。'","pace":[["0–12s","找出类比的结构"],["12–45s","列出关键差异"],["45–60s","说清类比在哪一步失效"]]},{"n":"转移话题者","en":"Red Herring · 主动版","cat":"逻辑谬误","d":"自己没把握时，主动把话题引到对方弱的地方。","use":"发现对方在回避核心问题，就把它明确摆回桌面，重复问一次。","ex":"'这个我们待会儿再说。我问的是：那天为什么没通知我。'","pace":[["0–12s","标出被绕开的那句"],["12–45s","要求正面回答"],["45–60s","不回答就记下这一点"]]},{"n":"诉诸亲信","en":"Appeal to Friendship","cat":"逻辑谬误","d":"用关系替代论证。'你还不信我？'","use":"对亲近的人更要分清：关系值得信任，判断未必。","ex":"'我们关系好是一回事，这条数据够不够是另一回事。'","pace":[["0–12s","承认关系好"],["12–45s","单独看这条判断"],["45–60s","按证据决定"]]},{"n":"夸大分母","en":"Denominator Fallacy","cat":"逻辑谬误","d":"用不对等的分母比较，得出看似悬殊的差距。","use":"比较任何比例前，先确认两边分母同口径。","ex":"'这家医院一年接了三千台，另一家接了一万——但我们县就这一家能做。'","pace":[["0–12s","找出两个分母"],["12–45s","统一口径重算"],["45–60s","重给结论"]]}];
+const CATS = ["全部","认知偏差","逻辑谬误","社会心理学","管理学","说服与决策","认知框架","记忆与注意","情绪与动机","表达结构"];
+const $ = s => document.querySelector(s);
+let curName=null, drawn=[], pool=[], busy=false, curCat="全部";
+
+/* ══ Tab 切换 ══ */
+document.querySelectorAll(".tab").forEach(t=>{
+  t.onclick = ()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
+    t.classList.add("on");
+    document.querySelectorAll(".view").forEach(v=>v.classList.remove("on"));
+    $("#v-"+t.dataset.v).classList.add("on");
+    $("#hdTitle").textContent = {time:"计时",draw:"抽卡",list:"全览"}[t.dataset.v];
+    window.scrollTo(0,0);
+  };
+});
+
+/* ══ 抽卡 ══ */
+const c3d=$("#c3d"), faceBack=$("#faceBack"), ripple=$("#ripple");
+function placeRipple(){
+  ripple.style.left="calc(50% - 10px)"; ripple.style.top="calc(50% - 10px)";
+}
+placeRipple();
+function spawnParticles(){
+  const box=$("#particles"); box.innerHTML="";
+  for(let i=0;i<10;i++){
+    const p=document.createElement("div");
+    p.className="pt";
+    const a=(Math.PI*2*i)/10, dist=110+Math.random()*70;
+    p.style.left="50%"; p.style.top="50%";
+    p.style.setProperty("--dx",Math.cos(a)*dist+"px");
+    p.style.setProperty("--dy",Math.sin(a)*dist*.72+"px");
+    p.style.animationDelay=(Math.random()*.12)+"s";
+    p.style.background = i%3===0 ? "#C98A2B" : (i%3===1 ? "#4FA97F" : "#A9CCAF");
+    box.appendChild(p);
+    requestAnimationFrame(()=>p.classList.add("go"));
+  }
+}
+let audioCtx=null;
+function chime(){
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC) return;
+    if(!audioCtx) audioCtx=new AC();
+    const ctx=audioCtx;
+    if(ctx.state==="suspended") ctx.resume();
+    [660,880,1320].forEach((f,i)=>{
+      const o=ctx.createOscillator(),gn=ctx.createGain();
+      o.type="sine"; o.frequency.value=f;
+      const t=ctx.currentTime+i*.07;
+      gn.gain.setValueAtTime(0,t);
+      gn.gain.linearRampToValueAtTime(.09,t+.02);
+      gn.gain.exponentialRampToValueAtTime(.0001,t+.45);
+      o.connect(gn).connect(ctx.destination); o.start(t); o.stop(t+.5);
+    });
+  }catch(e){}
+}
+function buzz(){ try{ if(navigator.vibrate) navigator.vibrate([90,60,90]); }catch(e){} }
+function flip(open){ c3d.classList.toggle("flip", open); $("#btnBack").disabled = !open; }
+
+function showFront(e, no, animate){
+  curName=e.n;
+  $("#fEmpty").style.display="none";
+  const b=$("#fBody"); b.style.display="flex";
+  if(animate){ b.style.animation="none"; void b.offsetWidth; }
+  $("#fCat").textContent=e.cat;
+  $("#fName").textContent=e.n;
+  $("#fEn").textContent=e.en;
+  $("#fRule").textContent=e.d;
+  $("#fQuote").textContent=e.ex;
+  $("#fNo").textContent="NO."+String(no).padStart(2,"0");
+  $("#backTxt").innerHTML='<div class="a">EFFECT</div><div class="b">已萃取 · 再抽一次</div>';
+  // 同步到全屏模式
+  $("#fullName").textContent = e.n + " · " + e.en;
+  const q=$("#fullQ");
+  q.classList.remove("empty"); q.textContent = e.ex;
+}
+function draw(){
+  if(busy) return;
+  if(!pool.length){ toast("牌堆空了 · 点「抽取」重置"); return; }
+  busy=true;
+  const btn=$("#btnDraw");
+  btn.disabled=true; btn.textContent="萃取中…";
+  flip(false);
+  setTimeout(()=>{
+    c3d.classList.remove("shake","rip"); void c3d.offsetWidth;
+    c3d.classList.add("rip");
+    faceBack.classList.remove("go"); void faceBack.offsetWidth; faceBack.classList.add("go");
+    spawnParticles();
+    setTimeout(()=>{
+      c3d.classList.add("shake");
+      setTimeout(()=>{
+        c3d.classList.remove("rip");
+        const name=pool.splice(Math.floor(Math.random()*pool.length),1)[0];
+        const e=DATA.find(x=>x.n===name);
+        drawn.push(e);
+        showFront(e, DATA.indexOf(e)+1, true);
+        const h=$("#halo"), r=$("#ringline");
+        h.classList.remove("go"); void h.offsetWidth; h.classList.add("go");
+        r.classList.remove("go"); void r.offsetWidth; r.classList.add("go");
+        flip(true); chime(); buzz();
+        busy=false;
+        btn.disabled=false;
+        btn.textContent = pool.length ? "再抽一个" : "重新洗牌";
+        $("#cnt").textContent=drawn.length; $("#pool").textContent=pool.length;
+      },480);
+    },430);
+  },300);
+}
+function resetPool(){
+  pool=DATA.map(e=>e.n); drawn=[]; curName=null;
+  $("#cnt").textContent=0; $("#pool").textContent=pool.length;
+  flip(false);
+  $("#fEmpty").style.display="grid"; $("#fBody").style.display="none";
+  $("#backTxt").innerHTML='<div class="a">EFFECT</div><div class="b">尚未萃取</div>';
+  $("#fullName").textContent="抽一张效应，照着它说";
+  const q=$("#fullQ"); q.classList.add("empty"); q.textContent="还没抽卡 —— 现在上去抽一张";
+  $("#btnDraw").textContent="抽取一个效应";
+  renderList();
+}
+$("#btnDraw").onclick=()=>{ if(!pool.length){ resetPool(); toast("牌堆已重置"); } else draw(); };
+$("#btnBack").onclick=()=>{ flip(false); $("#btnDraw").textContent="抽取一个效应"; };
+c3d.addEventListener("click",()=>{ if(!busy) draw(); });
+
+/* ══ 全览 ══ */
+function renderChips(){
+  $("#chips").innerHTML="";
+  CATS.forEach(c=>{
+    const b=document.createElement("button");
+    b.className="chip"+(c===curCat?" on":"");
+    b.textContent = c==="全部" ? "全部 96" : c;
+    b.onclick=()=>{ curCat=c; renderChips(); renderList(); };
+    $("#chips").appendChild(b);
+  });
+}
+function renderList(){
+  const q=$("#search").value.trim().toLowerCase();
+  const html = CATS.filter(k=>k!=="全部").map(k=>{
+    const all=DATA.filter(e=>e.cat===k);
+    const catOk = (curCat==="全部" || curCat===k);
+    const list = (catOk && q) ? all.filter(e=>(e.n+e.en+e.d+e.use+e.ex).toLowerCase().includes(q))
+              : (catOk ? all : []);
+    if(!list.length) return "";
+    return '<div class="sec"><div class="sec-head"><h2>'+k+'</h2><span class="cnt">'+list.length+' 条</span><span class="ln"></span></div><div class="elist">'+
+      list.map(e=>'<article class="e" data-t="'+(e.n+e.en+e.d+e.use+e.ex).replace(/"/g,'')+'">'+
+        '<div class="e-top"><span class="e-cat">'+e.cat+'</span></div>'+
+        '<div class="e-name">'+e.n+'</div><div class="e-en">'+e.en+'</div>'+
+        '<div class="e-blk"><div class="e-k">它是什么</div><div class="e-v">'+e.d+'</div></div>'+
+        '<div class="e-blk"><div class="e-k">在这 60 秒里怎么用</div><div class="e-v">'+e.use+'</div></div>'+
+        '<div class="e-blk"><div class="e-k">照抄这一句</div><div class="e-q">'+e.ex+'</div></div>'+
+        '<div class="e-blk"><div class="e-k">60 秒节奏</div><div class="pace">'+
+          e.pace.map(p=>'<div class="pace-row"><span class="t">'+p[0]+'</span><span>'+p[1]+'</span></div>').join("")+
+        '</div></div>'+
+        '<button class="copy" data-copy="'+DATA.indexOf(e)+'">复制表达卡</button>'+
+      '</article>').join("")+'</div></div>';
+  }).join("");
+  $("#listBody").innerHTML = html || '<div class="empty">没找到这个，换个词试试</div>';
+  document.querySelectorAll("[data-copy]").forEach(b=>{
+    b.onclick=()=>{
+      const e=DATA[+b.dataset.copy];
+      const txt='【'+e.n+' · '+e.en+'】\n分类：'+e.cat+'\n\n它是什么：'+e.d+'\n\n怎么用：'+e.use+
+        '\n\n照抄：'+e.ex+'\n\n60 秒节奏：\n'+e.pace.map(p=>'  '+p[0]+'  '+p[1]).join("\n");
+      if(navigator.clipboard) navigator.clipboard.writeText(txt).then(()=>toast("已复制「"+e.n+"」"),()=>toast("长按可手动复制"));
+      else toast("浏览器不支持自动复制");
+    };
+  });
+}
+$("#search").addEventListener("input", renderList);
+
+/* ══ 计时 ══ */
+const CS=2*Math.PI*124, CF=2*Math.PI*138;
+const SPEAK_TOTAL=60, PREP_TOTAL=600;
+let phase="A", running=false, left=PREP_TOTAL, rafId=null, last=0;
+const barS=$("#barS"), valS=$("#valS"), barF=$("#barF"), valF=$("#valF"),
+      full=$("#full"), spk=$("#spk");
+barS.style.strokeDasharray=CS; barF.style.strokeDasharray=CF;
+const fmt=s=>String(Math.floor(Math.max(0,s)/60)).padStart(2,"0")+":"+String(Math.floor(Math.max(0,s)%60)).padStart(2,"0");
+
+function paintPrep(){
+  const remain = phase==="A" ? left : 0;
+  $("#prepTime").textContent = fmt(remain);
+  $("#prepFill").style.width = (100*(1-remain/PREP_TOTAL)).toFixed(1)+"%";
+  $("#prep").classList.toggle("active", phase==="A" && running);
+  $("#prep").classList.toggle("warn", phase==="A" && running && left<=60 && left>0);
+  $("#prep").classList.toggle("done", phase!=="A");
+  $("#prep").querySelector(".t").textContent = phase==="A" ? "PREP" : "DONE";
+}
+function paintSpeak(){
+  const remain = phase==="B" ? left : SPEAK_TOTAL;
+  barS.style.strokeDashoffset = CS*(1-(1-remain/SPEAK_TOTAL));
+  barF.style.strokeDashoffset = CF*(1-(1-remain/SPEAK_TOTAL));
+  valS.textContent = Math.max(0, Math.ceil(remain));
+  valF.textContent = Math.max(0, Math.ceil(remain));
+  spk.classList.toggle("live", phase==="B" && running);
+  spk.classList.toggle("warn", phase==="B" && running && left<=10 && left>0);
+  full.classList.toggle("warn", phase==="B" && left<=10 && left>0);
+}
+function paint(){ paintPrep(); paintSpeak(); }
+
+function tick(ts){
+  if(!running) return;
+  if(!last) last=ts;
+  left -= (ts-last)/1000; last=ts;
+  if(left<=0){
+    left=0; paint(); stop(); chime(); buzz();
+    if(phase==="A"){
+      $("#spkNote").textContent="备料结束 —— 抽一张，现在开口";
+      toast("备料结束 · 进入 60 秒开口");
+      setTimeout(()=>{ if(!running) goSpeak(true); },1100);
+    }else{
+      $("#spkNote").textContent="说完了。哪一句你印象最深？";
+      toast("60 秒结束");
+      $("#btnTimer").textContent="再来一轮";
+      if(full.classList.contains("on")) setTimeout(exitFull,1400);
+    }
+    return;
+  }
+  paint();
+  rafId=requestAnimationFrame(tick);
+}
+function start(){
+  if(left<=0) left=(phase==="A"?PREP_TOTAL:SPEAK_TOTAL);
+  running=true; last=0;
+  if(phase==="B") $("#spkNote").textContent="开口 —— 合上资料，一口气说完";
+  $("#btnTimer").textContent="暂停";
+  $("#btnPause").textContent="暂停";
+  paint(); wakeLock();
+  cancelAnimationFrame(rafId);            // 幂等：先掐掉旧的循环，避免并行使计时翻倍
+  rafId=requestAnimationFrame(tick);
+}
+function stop(){
+  running=false; cancelAnimationFrame(rafId);
+  spk.classList.remove("live","warn");
+  $("#prep").classList.remove("active","warn");
+  $("#btnTimer").textContent = (phase==="B") ? "继续开口" : "继续备料";
+  $("#btnPause").textContent="继续";
+}
+function goSpeak(auto){
+  phase="B"; left=SPEAK_TOTAL; last=0;
+  $("#spkNote").textContent="准备好了就抽一张效应，然后合上资料开口";
+  paint();
+  if(!auto) enterFull(); else start();
+}
+function resetAll(){
+  stop(); releaseLock();
+  phase="A"; left=PREP_TOTAL;
+  $("#spkNote").textContent="先抽一张效应，然后合上资料开口";
+  $("#btnTimer").textContent="开始备料";
+  exitFull();
+  paint();
+}
+$("#btnTimer").onclick=()=>{
+  if(phase==="B" && left<=0 && !running){ resetAll(); return; }
+  running ? stop() : start();
+};
+$("#btnSkip").onclick=()=>{ stop(); goSpeak(false); };
+$("#btnResetT").onclick=resetAll;
+
+/* ══ 全屏开口模式 ══ */
+function enterFull(){ full.classList.add("on"); document.body.style.overflow="hidden"; start(); }
+function exitFull(){
+  full.classList.remove("on","warn");
+  document.body.style.overflow="";
+  if(!running) releaseLock();
+}
+$("#btnFullX").onclick=()=>{ exitFull(); stop(); };
+$("#btnPause").onclick=()=>{
+  running ? (stop(), $("#btnPause").textContent="继续") : start();
+};
+$("#btnAgain").onclick=()=>{ phase="B"; left=SPEAK_TOTAL; paint(); start(); };
+
+/* 屏幕常亮 —— 60秒要举着手机说，不能中途熄屏 */
+let wl=null;
+async function wakeLock(){
+  try{
+    if(!("wakeLock" in navigator) || wl) return;
+    wl = await navigator.wakeLock.request("screen");
+    wl.addEventListener("release",()=>{ wl=null; });
+  }catch(e){}
+}
+function releaseLock(){ if(wl){ try{ wl.release(); }catch(e){} wl=null; } }
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible" && running){
+    last=0;                       // 关键：rAF 在后台是暂停的，回到前台必须重置时间基准
+    paint(); wakeLock();          // 否则会把后台那段时间一次性扣掉，60 秒凭空少掉一大截
+    cancelAnimationFrame(rafId);
+    rafId=requestAnimationFrame(tick);
+  }
+});
+/* 切后台时停掉循环，省电；回前台由上面重启 */
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="hidden" && running) cancelAnimationFrame(rafId);
+});
+/* 音频上下文在 iOS 上需要用户手势解锁，解锁一次后复用 */
+document.addEventListener("touchend",()=>{
+  try{
+    const C2=window.AudioContext||window.webkitAudioContext;
+    if(C2){ const c=audioCtx||(audioCtx=new C2()); if(c.state==="suspended") c.resume(); }
+  }catch(e){}
+},{once:true});
+
+/* ══ 其它 ══ */
+let tt;
+function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show"); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove("show"),2400); }
+document.addEventListener("dblclick",e=>e.preventDefault(),{passive:false});
+
+$("#hdN").textContent=DATA.length+" 个";
+resetPool(); renderChips(); renderList(); paint();
+</script>
+</body>
+</html>
